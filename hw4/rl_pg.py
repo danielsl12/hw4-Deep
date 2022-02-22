@@ -28,13 +28,21 @@ class PolicyNet(nn.Module):
 
         # TODO: Implement a simple neural net to approximate the policy.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.learn_rate = kw["learn_rate"]
+        layers = []
+        layers += [torch.nn.Linear(in_features, kw["height"]), torch.nn.ReLU()]
+        hidden = [torch.nn.Linear(kw["height"], kw["height"]) if i % 2 == 0 else torch.nn.ReLU() for i in range(kw["width"] * 2)]
+        layers += hidden
+        # for _ in range(kw["width"]):
+        #     layers += [torch.nn.Linear(kw["height"], kw["height"]), torch.nn.ReLU()]
+        layers.append(torch.nn.Linear(kw["height"], out_actions))
+        self.model = torch.nn.Sequential(*layers)
         # ========================
 
     def forward(self, x):
         # TODO: Implement a simple neural net to approximate the policy.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        action_scores = self.model(x)
         # ========================
         return action_scores
 
@@ -49,7 +57,7 @@ class PolicyNet(nn.Module):
         """
         # TODO: Implement according to docstring.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        net = PolicyNet(**kw)
         # ========================
         return net.to(device)
 
@@ -87,7 +95,8 @@ class PolicyAgent(object):
         #  Generate the distribution as described above.
         #  Notice that you should use p_net for *inference* only.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        actions_scores = self.p_net(self.curr_state)
+        actions_proba = torch.nn.Softmax(dim=0)(actions_scores)
         # ========================
 
         return actions_proba
@@ -108,9 +117,10 @@ class PolicyAgent(object):
         #  - Update agent state.
         #  - Generate and return a new experience.
         # ====== YOUR CODE: ======
-
-        raise NotImplementedError()
-
+        action = torch.multinomial(self.current_action_distribution(), 1).item()  # check if -1 is needed
+        state, self.curr_episode_reward, is_done, _ = self.env.step(action)
+        self.curr_state = torch.FloatTensor(state)
+        experience = Experience(self.curr_state, action, self.curr_episode_reward, is_done)
         # ========================
         if is_done:
             self.reset()
@@ -138,7 +148,13 @@ class PolicyAgent(object):
             #  Create an agent and play the environment for one episode
             #  based on the policy encoded in p_net.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            agent = cls(env=env, p_net=p_net, device=device)
+            is_done = False
+            while not is_done:
+                exp = agent.step()
+                n_steps += 1
+                reward += exp.reward
+                is_done = exp.is_done
             # ========================
         return env, n_steps, reward
 

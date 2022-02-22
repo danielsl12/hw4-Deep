@@ -39,7 +39,10 @@ class Episode(object):
         #  Try to implement it in O(n) runtime, where n is the number of
         #  states. Hint: change the order.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        qvals.append(self.experiences[-1].reward)
+        for t in range(len(self.experiences) - 2, -1, -1):
+            state_action_value = self.experiences[t].reward + gamma * qvals[0]
+            qvals.insert(0, state_action_value)
         # ========================
         return qvals
 
@@ -88,7 +91,15 @@ class TrainBatch(object):
         #   - Calculate the q-values for states in each experience.
         #   - Construct a TrainBatch instance.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        states, actions, q_vals, total_rewards = [], [], [], []
+
+        for ep in episodes:
+            states += [exp.state for exp in ep.experiences]
+            actions += [exp.action for exp in ep.experiences]
+            q_vals += ep.calc_qvals(gamma)
+            total_rewards += [exp.reward for exp in ep.experiences]
+
+        train_batch = TrainBatch(torch.stack(states), torch.LongTensor(actions), torch.FloatTensor(q_vals), torch.FloatTensor(total_rewards))
         # ========================
         return train_batch
 
@@ -147,7 +158,14 @@ class TrainBatchDataset(torch.utils.data.IterableDataset):
             #    by the agent.
             #  - Store Episodes in the curr_batch list.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            episode_done = False
+            while not episode_done:
+                episode_experiences.append(agent.step())
+                episode_reward += episode_experiences[-1].reward
+                episode_done = episode_experiences[-1].is_done
+
+            curr_batch.append(Episode(episode_reward, episode_experiences))
+            episode_reward, episode_experiences = 0.0, []
             # ========================
             if len(curr_batch) == self.episode_batch_size:
                 yield tuple(curr_batch)
