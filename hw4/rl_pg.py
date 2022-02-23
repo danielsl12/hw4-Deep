@@ -37,6 +37,17 @@ class PolicyNet(nn.Module):
         #     layers += [torch.nn.Linear(kw["height"], kw["height"]), torch.nn.ReLU()]
         layers.append(torch.nn.Linear(kw["height"], out_actions))
         self.model = torch.nn.Sequential(*layers)
+        
+#         layers_sizes = [in_features] + kw["hidden_layers"] + [out_actions]
+#         layers = []
+
+#         for l_in, l_out in zip(layers_sizes[0:len(layers_sizes) - 1], layers_sizes[1:len(layers_sizes)]):
+#             layers.append(nn.Linear(l_in, l_out,))
+#             if l_out != out_actions:
+#                 #layers.append(nn.BatchNorm1d(l_out, affine=False))
+#                 layers.append(nn.ReLU())
+
+#         self.model = nn.Sequential(*layers)
         # ========================
 
     def forward(self, x):
@@ -57,7 +68,8 @@ class PolicyNet(nn.Module):
         """
         # TODO: Implement according to docstring.
         # ====== YOUR CODE: ======
-        net = PolicyNet(**kw)
+        #net = PolicyNet(**kw)
+        net = PolicyNet(in_features=env.observation_space.shape[0], out_actions=env.action_space.n, **kw)
         # ========================
         return net.to(device)
 
@@ -95,8 +107,10 @@ class PolicyAgent(object):
         #  Generate the distribution as described above.
         #  Notice that you should use p_net for *inference* only.
         # ====== YOUR CODE: ======
-        actions_scores = self.p_net(self.curr_state)
-        actions_proba = torch.nn.Softmax(dim=0)(actions_scores)
+        with torch.no_grad():
+            actions_scores = self.p_net(self.curr_state)
+            #actions_proba = torch.nn.Softmax(dim=0)(actions_scores)
+            actions_proba = nn.functional.softmax(actions_scores, dim=-1)
         # ========================
 
         return actions_proba
@@ -117,10 +131,16 @@ class PolicyAgent(object):
         #  - Update agent state.
         #  - Generate and return a new experience.
         # ====== YOUR CODE: ======
-        action = torch.multinomial(self.current_action_distribution(), 1).item()  # check if -1 is needed
-        state, self.curr_episode_reward, is_done, _ = self.env.step(action)
-        self.curr_state = torch.FloatTensor(state)
-        experience = Experience(self.curr_state, action, self.curr_episode_reward, is_done)
+        action = torch.multinomial(self.current_action_distribution(), num_samples=1).item()  # check if -1 is needed
+        # state, self.curr_episode_reward, is_done, _ = self.env.step(action)
+        # self.curr_state = torch.FloatTensor(state)
+        # experience = Experience(self.curr_state, action, self.curr_episode_reward, is_done)
+        
+        
+        
+        state, reward, is_done, _ = self.env.step(action)
+        experience = Experience(self.curr_state, action, reward, is_done)
+        self.curr_state = torch.tensor(state, device=self.device, dtype=torch.float)
         # ========================
         if is_done:
             self.reset()
@@ -200,11 +220,16 @@ class VanillaPolicyGradientLoss(nn.Module):
         #   different episodes. So, here we'll simply average over the number
         #   of total experiences in our batch.
         # ====== YOUR CODE: ======
-        action_log_proba = torch.nn.functional.log_softmax(action_scores, dim=-1)
-        #action_log_proba_taken = action_log_proba[torch.arange(policy_weight.shape[0]), batch.actions]
-        #action_log_proba_taken = torch.gather(action_log_proba, dim=1, index=torch.unsqueeze(batch.actions, dim=1)).flatten()
-        action_log_proba_taken = torch.gather(action_log_proba, dim=1, index=batch.actions.unsqueeze(dim=-1)).squeeze()
-        loss_p = -torch.mean(policy_weight * action_log_proba_taken)  # check about the -
+        # action_log_proba = torch.nn.functional.log_softmax(action_scores, dim=-1)
+        # #action_log_proba_taken = action_log_proba[torch.arange(policy_weight.shape[0]), batch.actions]
+        # #action_log_proba_taken = torch.gather(action_log_proba, dim=1, index=torch.unsqueeze(batch.actions, dim=1)).flatten()
+        # action_log_proba_taken = torch.gather(action_log_proba, dim=1, index=batch.actions.unsqueeze(dim=-1)).squeeze()
+        # loss_p = -torch.mean(policy_weight * action_log_proba_taken)  # check about the -
+        
+        log_proba = torch.log_softmax(action_scores, dim=1)
+        log_proba_taken_action = torch.gather(log_proba, dim=1, index=batch.actions.view(-1, 1))
+
+        loss_p = - torch.dot(log_proba_taken_action.squeeze(), policy_weight) / len(batch)
         # ========================
         return loss_p
 
@@ -431,21 +456,35 @@ class PolicyTrainer(object):
         #   - Backprop.
         #   - Update model parameters.
         # ====== YOUR CODE: ======
-        self.optimizer.zero_grad()
-        actions_scores = []
-        total_loss = torch.tensor([0.0])
-        for i in range(batch.states.shape[0]):
-            actions_scores.append(self.model(batch.states[i]))
-        actions_scores = torch.stack(actions_scores)
-        # actions_scores = self.model(batch.states)
+        # total_loss = torch.tensor([0.0])
+#         self.optimizer.zero_grad()
+#         actions_scores = []
+#         total_loss = torch.tensor([0.0])
+#         for i in range(batch.states.shape[0]):
+#             actions_scores.append(self.model(batch.states[i]))
+#         actions_scores = torch.stack(actions_scores)
+#         # actions_scores = self.model(batch.states)
 
+#         for loss in self.loss_functions:
+#             loss_res, loss_dict = loss(batch, actions_scores)
+#             total_loss += loss_res
+#             losses_dict.update(loss_dict)
+
+#         total_loss.backward()
+#         self.optimizer.step()
+
+        total_loss = 0
+        y=self.model(batch.states)
+        i=0
         for loss in self.loss_functions:
-            loss_res, loss_dict = loss(batch, actions_scores)
-            total_loss += loss_res
-            losses_dict.update(loss_dict)
-
+            
+            l,d = loss(batch,y)
+            total_loss +=l
+            losses_dict.update(d)
+            
         total_loss.backward()
         self.optimizer.step()
+        self.optimizer.zero_grad()
         # ========================
 
         return total_loss, losses_dict

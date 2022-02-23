@@ -19,11 +19,14 @@ def part1_pg_hyperparams():
     # ====== YOUR CODE: ======
     # hp["in_features"] = 8
     # hp["out_actions"] = 4
-    hp["width"] = 2
-    hp["height"] = 4
-    hp["learn_rate"] = 0.01
-    hp["gamma"] = 0.99
-    hp["num_workers"] = 0
+    hp["width"] = 0
+    hp["height"] = 512
+    hp["beta"] = 0.5
+    hp["batch_size"] = 16
+    hp["learn_rate"] = 7.5e-4
+    
+    # hp['hidden_layers'] = [128, 128]
+    # hp["batch_size"] = 8
     # ========================
     return hp
 
