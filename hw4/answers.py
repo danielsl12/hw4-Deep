@@ -17,10 +17,13 @@ def part1_pg_hyperparams():
     # TODO: Tweak the hyperparameters if needed.
     #  You can also add new ones if you need them for your model's __init__.
     # ====== YOUR CODE: ======
-    hp["in_features"] = 8
-    hp["out_actions"] = 4
+    # hp["in_features"] = 8
+    # hp["out_actions"] = 4
     hp["width"] = 2
     hp["height"] = 4
+    hp["learn_rate"] = 0.01
+    hp["gamma"] = 0.99
+    hp["num_workers"] = 0
     # ========================
     return hp
 

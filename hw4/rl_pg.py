@@ -176,7 +176,7 @@ class VanillaPolicyGradientLoss(nn.Module):
         #  Use the helper methods in this class to first calculate the weights
         #  and then the loss using the weights and action scores.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        loss_p = self._policy_loss(batch, action_scores, self._policy_weight(batch))
         # ========================
         return loss_p, dict(loss_p=loss_p.item())
 
@@ -185,7 +185,7 @@ class VanillaPolicyGradientLoss(nn.Module):
         #  Return the policy weight term for the causal vanilla PG loss.
         #  This is a tensor of shape (N,).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        policy_weight = batch.q_vals
         # ========================
         return policy_weight
 
@@ -200,7 +200,11 @@ class VanillaPolicyGradientLoss(nn.Module):
         #   different episodes. So, here we'll simply average over the number
         #   of total experiences in our batch.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        action_log_proba = torch.nn.functional.log_softmax(action_scores, dim=-1)
+        #action_log_proba_taken = action_log_proba[torch.arange(policy_weight.shape[0]), batch.actions]
+        #action_log_proba_taken = torch.gather(action_log_proba, dim=1, index=torch.unsqueeze(batch.actions, dim=1)).flatten()
+        action_log_proba_taken = torch.gather(action_log_proba, dim=1, index=batch.actions.unsqueeze(dim=-1)).squeeze()
+        loss_p = -torch.mean(policy_weight * action_log_proba_taken)  # check about the -
         # ========================
         return loss_p
 
@@ -218,7 +222,11 @@ class BaselinePolicyGradientLoss(VanillaPolicyGradientLoss):
         #  Calculate the loss and baseline.
         #  Use the helper methods in this class as before.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # action_proba = torch.nn.LogSoftmax(dim=1)(action_scores)
+        policy_weight, baseline = self._policy_weight(batch)
+        # action_proba_taken = action_proba[torch.arange(policy_weight.shape[0]), batch.actions]
+        # loss_p = -torch.mean((policy_weight - baseline) * action_proba_taken)  # check about the -
+        loss_p = self._policy_loss(batch, action_scores, policy_weight - baseline)
         # ========================
         return loss_p, dict(loss_p=loss_p.item(), baseline=baseline.item())
 
@@ -227,7 +235,7 @@ class BaselinePolicyGradientLoss(VanillaPolicyGradientLoss):
         #  Calculate both the policy weight term and the baseline value for
         #  the PG loss with baseline.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        policy_weight, baseline = batch.q_vals, torch.mean(batch.q_vals)
         # ========================
         return policy_weight, baseline
 
@@ -251,7 +259,7 @@ class ActionEntropyLoss(nn.Module):
         max_entropy = None
         # TODO: Compute max_entropy.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        max_entropy = torch.log(torch.tensor([n_actions])).item()
         # ========================
         return max_entropy
 
@@ -277,7 +285,8 @@ class ActionEntropyLoss(nn.Module):
         #   - Use pytorch built-in softmax and log_softmax.
         #   - Calculate loss per experience and average over all of them.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        loss_per_exp_mean = (torch.nn.Softmax(dim=1)(action_scores) * torch.nn.LogSoftmax(dim=1)(action_scores)).sum(1).mean()
+        loss_e = loss_per_exp_mean / self.max_entropy
         # ========================
 
         loss_e *= self.beta
@@ -424,7 +433,21 @@ class PolicyTrainer(object):
         #   - Backprop.
         #   - Update model parameters.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.optimizer.zero_grad()
+        actions_scores = []
+        total_loss = torch.tensor([0.0])
+        for i in range(batch.states.shape[0]):
+            actions_scores.append(self.model(batch.states[i]))
+        actions_scores = torch.stack(actions_scores)
+        # actions_scores = self.model(batch.states)
+
+        for loss in self.loss_functions:
+            loss_res, loss_dict = loss(batch, actions_scores)
+            total_loss += loss_res
+            losses_dict.update(loss_dict)
+
+        total_loss.backward()
+        self.optimizer.step()
         # ========================
 
         return total_loss, losses_dict

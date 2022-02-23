@@ -99,7 +99,7 @@ class TrainBatch(object):
             q_vals += ep.calc_qvals(gamma)
             total_rewards += [exp.reward for exp in ep.experiences]
 
-        train_batch = TrainBatch(torch.stack(states), torch.LongTensor(actions), torch.FloatTensor(q_vals), torch.FloatTensor(total_rewards))
+        train_batch = cls(torch.stack(states), torch.LongTensor(actions), torch.FloatTensor(q_vals), torch.FloatTensor(total_rewards))
         # ========================
         return train_batch
 
