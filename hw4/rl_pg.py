@@ -423,9 +423,7 @@ class PolicyTrainer(object):
         losses_dict = {}
         # TODO:
         #  Complete the training loop for your model.
-        #  Note that this Trainer supports multiple loss functions, stored
-        #  in the list self.loss_functions, each returning a loss tensor and
-        #  a dict (as we've implemented above).
+        #  Note that this Trainer supports multiple loss func)
         #   - Forward pass
         #   - Calculate loss with each loss function. Sum the losses and
         #     Combine the dict returned from each loss function into the

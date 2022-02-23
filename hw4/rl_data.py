@@ -43,6 +43,12 @@ class Episode(object):
         for t in range(len(self.experiences) - 2, -1, -1):
             state_action_value = self.experiences[t].reward + gamma * qvals[0]
             qvals.insert(0, state_action_value)
+
+        # for i, e in enumerate(self.experiences):
+        #     current_qval = 0
+        #     for j in range(len(self.experiences) - i):
+        #         current_qval += (gamma ** j) * self.experiences[j + i].reward
+        #     qvals.append(current_qval)
         # ========================
         return qvals
 
@@ -97,7 +103,8 @@ class TrainBatch(object):
             states += [exp.state for exp in ep.experiences]
             actions += [exp.action for exp in ep.experiences]
             q_vals += ep.calc_qvals(gamma)
-            total_rewards += [exp.reward for exp in ep.experiences]
+            #total_rewards += [exp.reward for exp in ep.experiences]
+            total_rewards += [ep.total_reward]
 
         train_batch = cls(torch.stack(states), torch.LongTensor(actions), torch.FloatTensor(q_vals), torch.FloatTensor(total_rewards))
         # ========================
