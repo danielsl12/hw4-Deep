@@ -19,7 +19,19 @@ class AACPolicyNet(nn.Module):
         #  Implement a dual-head neural net to approximate both the
         #  policy and value. You can have a common base part, or not.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        layers = []
+        layers += [torch.nn.Linear(in_features, kw["height"]), torch.nn.ReLU()]
+        hidden = [torch.nn.Linear(kw["height"], kw["height"]) if i % 2 == 0 else torch.nn.ReLU() for i in range(kw["width"] * 2)]
+        layers += hidden
+        layers.append(torch.nn.Linear(kw["height"], out_actions))
+        self.actor = torch.nn.Sequential(*layers)
+
+        layers = []
+        layers += [torch.nn.Linear(in_features, kw["height"]), torch.nn.ReLU()]
+        hidden = [torch.nn.Linear(kw["height"], kw["height"]) if i % 2 == 0 else torch.nn.ReLU() for i in range(kw["width"] * 2)]
+        layers += hidden
+        layers.append(torch.nn.Linear(kw["height"], 1))
+        self.critic = torch.nn.Sequential(*layers)
         # ========================
 
     def forward(self, x):
@@ -34,7 +46,8 @@ class AACPolicyNet(nn.Module):
         #  calculate both the action scores (policy) and the value of the
         #  given state.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        action_scores = self.actor(x)
+        state_values = self.critic(x)
         # ========================
 
         return action_scores, state_values
