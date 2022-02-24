@@ -28,7 +28,6 @@ class PolicyNet(nn.Module):
 
         # TODO: Implement a simple neural net to approximate the policy.
         # ====== YOUR CODE: ======
-        self.learn_rate = kw["learn_rate"]
         layers = []
         layers += [torch.nn.Linear(in_features, kw["height"]), torch.nn.ReLU()]
         hidden = [torch.nn.Linear(kw["height"], kw["height"]) if i % 2 == 0 else torch.nn.ReLU() for i in range(kw["width"] * 2)]
@@ -141,6 +140,7 @@ class PolicyAgent(object):
         state, reward, is_done, _ = self.env.step(action)
         experience = Experience(self.curr_state, action, reward, is_done)
         self.curr_state = torch.tensor(state, device=self.device, dtype=torch.float)
+        self.curr_episode_reward += reward
         # ========================
         if is_done:
             self.reset()
@@ -474,13 +474,11 @@ class PolicyTrainer(object):
 #         self.optimizer.step()
 
         total_loss = 0
-        y=self.model(batch.states)
-        i=0
+        actions_scores = self.model(batch.states)
         for loss in self.loss_functions:
-            
-            l,d = loss(batch,y)
-            total_loss +=l
-            losses_dict.update(d)
+            loss_res, loss_dict = loss(batch, actions_scores)
+            total_loss += loss_res
+            losses_dict.update(loss_dict)
             
         total_loss.backward()
         self.optimizer.step()
