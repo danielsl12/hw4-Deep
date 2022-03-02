@@ -82,7 +82,17 @@ class Trainer(abc.ABC):
             #  - Use the train/test_epoch methods.
             #  - Save losses and accuracies in the lists above.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            train_result = self.train_epoch(dl_train, **kw)
+            test_result = self.test_epoch(dl_test, **kw)
+            # train_result = self.train_epoch(dl_train, verbose=verbose, **kw)
+            # test_result = self.test_epoch(dl_test, verbose=verbose, **kw)
+            # train_loss.extend(train_result.losses)
+            train_loss.append(torch.mean(torch.tensor(train_result.losses)).item())
+            train_acc.append(train_result.accuracy)
+            # test_loss.extend(test_result.losses)
+            test_loss.append(torch.mean(torch.tensor(test_result.losses)).item())
+            test_acc.append(test_result.accuracy)
+            actual_num_epochs += 1
             # ========================
 
             # TODO:
@@ -93,11 +103,17 @@ class Trainer(abc.ABC):
             #    the checkpoints argument.
             if best_acc is None or test_result.accuracy > best_acc:
                 # ====== YOUR CODE: ======
-                raise NotImplementedError()
+                best_acc = test_result.accuracy
+                epochs_without_improvement = 0
+                if checkpoints:
+                    self.save_checkpoint(checkpoint_filename=checkpoints)
                 # ========================
             else:
                 # ====== YOUR CODE: ======
-                raise NotImplementedError()
+                epochs_without_improvement += 1
+                if early_stopping and epochs_without_improvement == early_stopping:
+                    actual_num_epochs = epoch
+                    break
                 # ========================
 
             if post_epoch_fn:
@@ -246,7 +262,11 @@ class VAETrainer(Trainer):
         x = x.to(self.device)  # Image batch (N,C,H,W)
         # TODO: Train a VAE on one batch.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.optimizer.zero_grad()
+        xr, myu, log_sigma2 = self.model(x)
+        loss, data_loss, kl_div_loss = self.loss_fn(x,xr,myu,log_sigma2)
+        loss.backward()
+        self.optimizer.step()
         # ========================
 
         return BatchResult(loss.item(), 1 / data_loss.item())
@@ -258,7 +278,8 @@ class VAETrainer(Trainer):
         with torch.no_grad():
             # TODO: Evaluate a VAE on one batch.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            xr, myu, log_sigma2 = self.model(x)
+            loss, data_loss, kl_div_loss = self.loss_fn(x, xr, myu, log_sigma2)
             # ========================
 
         return BatchResult(loss.item(), 1 / data_loss.item())

@@ -24,9 +24,9 @@ dependencies:
   - pip:
     - nbmerge
     - torchviz
-    - gym[atari, accept-rom-license, box2d]
+    - gym[atari, accept-rom-license, box2d]==0.21.0
   # pytorch
-  - pytorch=1.10
+  - pytorch=1.10.0
   - cudatoolkit
   - torchvision
   - torchtext
