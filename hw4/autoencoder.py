@@ -19,7 +19,49 @@ class EncoderCNN(nn.Module):
         #  use pooling or only strides, use any activation functions,
         #  use BN or Dropout, etc.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # self.filters = [64, 128, 256]
+        # in_filters = [64, 128, 256]
+        # out_filters = [64, 128, 256]
+        # in_filters.insert(0, in_channels)
+        # out_filters.insert(3, out_channels)
+        #
+        # for _, (input, output) in enumerate(zip(in_filters, out_filters)):
+        #     modules.append(nn.Conv2d(input, output, kernel_size=5, padding=2, stride=1))
+        #     modules.append(nn.MaxPool2d(kernel_size=2))
+        #     modules.append(nn.BatchNorm2d(output))
+        #     modules.append(nn.ReLU())
+
+
+        self.hidden_filters = [128, 256, 512]  # original was [64, 128, 256], tried to make it [32, 64, 128, 256, 512] but it crashed...
+        in_filters = self.hidden_filters.copy()
+        in_filters.insert(0, in_channels)
+        out_filters = self.hidden_filters.copy()
+        out_filters.append(out_channels)
+
+        for (in_dim, out_dim) in zip(in_filters, out_filters):
+            modules.append(nn.Conv2d(in_dim, out_dim, kernel_size=5, padding=2, stride=1, bias=False))
+            modules.append(nn.MaxPool2d(kernel_size=2))
+            modules.append(nn.BatchNorm2d(out_dim))
+            modules.append(nn.ELU())
+
+
+        # trying to build resnet18
+        # encoderList = []
+        # encoderList.append(nn.Conv2d(64, 64, kernel_size=3, padding=1, stride=1, bias=False))
+        # encoderList.append(nn.BatchNorm2d(64))
+        # encoderList.append(nn.ReLU(inplace=True))
+        # encoderList.append(nn.Conv2d(64, 64, kernel_size=3, padding=1, stride=1, bias=False))
+        # encoderList.append(nn.BatchNorm2d(64))
+        # encoderBlock = nn.Sequential(*encoderList)
+        #
+        # layer = nn.Sequential(encoderBlock, encoderBlock)
+        #
+        #
+        # modules.append(nn.Conv2d(in_channels, 64, kernel_size=3, padding=1, stride=1, bias=False))
+        # modules.append(nn.BatchNorm2d(64))
+        # modules.append(nn.ReLU(inplace=True))
+        # modules.append(nn.MaxPool2d(kernel_size=1))
+
         # ========================
         self.cnn = nn.Sequential(*modules)
 
@@ -42,7 +84,31 @@ class DecoderCNN(nn.Module):
         #  output should be a batch of images, with same dimensions as the
         #  inputs to the Encoder were.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        # self.filters = [256, 128, 64]
+        # in_filters = [256, 128, 64]
+        # out_filters = [256, 128, 64]
+        # in_filters.insert(0, in_channels)
+        # out_filters.insert(3, out_channels)
+        #
+        # for _, (input, output) in enumerate(zip(in_filters, out_filters)):
+        #     modules.append(nn.ReLU())
+        #     modules.append(nn.BatchNorm2d(input))
+        #     modules.append(nn.UpsamplingBilinear2d(scale_factor=2))
+        #     modules.append(nn.Conv2d(input, output, kernel_size=5, padding=2, stride=1))
+
+
+        self.hidden_filters = [512, 256, 128]  # original was [256, 128, 64], tried to make it [512, 256, 128, 64, 32] but it crashed...
+        in_filters = self.hidden_filters.copy()
+        in_filters.insert(0, in_channels)
+        out_filters = self.hidden_filters.copy()
+        out_filters.append(out_channels)
+
+        for (in_dim, out_dim) in zip(in_filters, out_filters):
+            modules.append(nn.ELU())
+            modules.append(nn.BatchNorm2d(in_dim))
+            modules.append(nn.UpsamplingBilinear2d(scale_factor=2))
+
+            modules.append(nn.ConvTranspose2d(in_dim, out_dim, kernel_size=5, padding=2, stride=1, bias=False))
         # ========================
         self.cnn = nn.Sequential(*modules)
 
@@ -70,7 +136,9 @@ class VAE(nn.Module):
 
         # TODO: Add more layers as needed for encode() and decode().
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.sigma_layer = nn.Linear(n_features, z_dim)
+        self.myu_layer = nn.Linear(n_features, z_dim)
+        self.decoding_layer = nn.Linear(z_dim, n_features)
         # ========================
 
     def _check_features(self, in_size):
@@ -91,7 +159,11 @@ class VAE(nn.Module):
         #     log_sigma2 (mean and log variance) of q(Z|x).
         #  2. Apply the reparametrization trick to obtain z.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        h = self.features_encoder(x).reshape(x.shape[0], -1)
+        sampled = torch.randn(h.shape[0], self.z_dim).to(device=h.device)
+        log_sigma2 = self.sigma_layer(h)
+        mu = self.myu_layer(h)
+        z = mu + sampled * log_sigma2
         # ========================
 
         return z, mu, log_sigma2
@@ -102,7 +174,9 @@ class VAE(nn.Module):
         #  1. Convert latent z to features h with a linear layer.
         #  2. Apply features decoder.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        decoded = self.decoding_layer(z)
+        decoded = decoded.reshape(decoded.shape[0], *self.features_shape)
+        x_rec = self.features_decoder(decoded)
         # ========================
 
         # Scale to [-1, 1] (same dynamic range as original images).
@@ -121,7 +195,12 @@ class VAE(nn.Module):
             #    Instead of sampling from N(psi(z), sigma2 I), we'll just take
             #    the mean, i.e. psi(z).
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            z = torch.randn((n, self.z_dim), device=device)
+            samples = self.decode(z)
+            # for _ in range(n):
+            #     rand_data = torch.randn(1, self.z_dim)
+            #     sample = torch.squeeze(VAE.decode(self, rand_data)).cpu()
+            #     samples.append(sample)
             # ========================
 
         # Detach and move to CPU for display purposes
@@ -154,7 +233,14 @@ def vae_loss(x, xr, z_mu, z_log_sigma2, x_sigma2):
     #  1. The covariance matrix of the posterior is diagonal.
     #  2. You need to average over the batch dimension.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    dx = torch.numel(x[0])
+    dz = z_mu.shape[1]
+    dist = (x - xr).reshape(x.shape[0], -1)
+    data_loss = ((torch.norm(dist, p=2, dim=-1)) ** 2 / (dx * x_sigma2)).mean()
+    log_det = torch.sum(z_log_sigma2, dim=-1)
+    trace = torch.sum(torch.exp(z_log_sigma2), dim=-1)
+    kldiv_loss = (torch.norm(z_mu, 2, -1) ** 2 + trace - dz - log_det).mean()
+    loss = data_loss + kldiv_loss
     # ========================
 
     return loss, data_loss, kldiv_loss
