@@ -6,6 +6,7 @@ math (delimited with $$).
 """
 import torch
 
+
 # ==============
 # Part 1 answers
 
@@ -24,7 +25,7 @@ def part1_pg_hyperparams():
     hp["beta"] = 0.5
     hp["batch_size"] = 16
     hp["learn_rate"] = 7.5e-4
-    
+
     # hp['hidden_layers'] = [128, 128]
     # hp["batch_size"] = 8
     # ========================
@@ -70,7 +71,6 @@ Let's take the mean reward 190 as a baseline and recalculate.
 $ Var( [0.8 \cdot (500-190), 0.15 \cdot (50-190), 0.05 \cdot (20-190)] ) ~= 23051 $
 """
 
-
 part1_q2 = r"""
 We know that $ v_{\pi}(s) = \sum_{a \in \mathcal{A}} \pi(a|s) \cdot q_{\pi}(s,a) $
 $\\$
@@ -92,7 +92,6 @@ This is more or less $\mathbb{E}({g(\tau)|s_0 = s,\pi})$ which is the definition
 This is why choosing the estimated q-values as regression targets for our state-values leads us to a valid
 approximation of the value function.
 """
-
 
 part1_q3 = r"""
 1. Let's start by looking at the policy loss graphs. We can see that the non-baseline experiences started from
@@ -201,24 +200,46 @@ PART3_CUSTOM_DATA_URL = None
 
 def part3_gan_hyperparams():
     hypers = dict(
-        batch_size=0,
-        z_dim=0,
-        data_label=0,
-        label_noise=0.0,
+        batch_size=16,
+        z_dim=128,
+        data_label=1,
+        label_noise=0.2,
         discriminator_optimizer=dict(
-            type="",  # Any name in nn.optim like SGD, Adam
-            lr=0.0,
+            type="Adam",  # Any name in nn.optim like SGD, Adam
+            lr=0.0002,
+            # weight_decay=0.001,
+            betas=(0.5, 0.999)
             # You an add extra args for the optimizer here
         ),
         generator_optimizer=dict(
-            type="",  # Any name in nn.optim like SGD, Adam
-            lr=0.0,
+            type="Adam",  # Any name in nn.optim like SGD, Adam
+            lr=0.0002,
+            betas=(0.5, 0.999),
+            # weight_decay=0.002
+            # weight_decay=0.002
             # You an add extra args for the optimizer here
         ),
     )
     # TODO: Tweak the hyperparameters to train your GAN.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    # hypers = dict(
+    #     batch_size=9,
+    #     z_dim=75,
+    #     data_label=1,
+    #     label_noise=0.2,
+    #     discriminator_optimizer=dict(
+    #         type="Adam",  # Any name in nn.optim like SGD, Adam
+    #         lr=0.0001,
+    #         # You an add extra args for the optimizer here
+    #         betas=(0.6, 0.99)
+    #     ),
+    #     generator_optimizer=dict(
+    #         type="Adam",  # Any name in nn.optim like SGD, Adam
+    #         lr=0.001,
+    #         # You an add extra args for the optimizer here
+    #         betas=(0.6, 0.99)
+    #     ),
+    # )
     # ========================
     return hypers
 
@@ -261,6 +282,7 @@ a = 2
 An equation: $e^{i\pi} -1 = 0$
 
 """
+
 
 # ==============
 
