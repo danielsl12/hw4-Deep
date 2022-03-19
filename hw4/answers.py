@@ -6,7 +6,6 @@ math (delimited with $$).
 """
 import torch
 
-
 # ==============
 # Part 1 answers
 
@@ -25,7 +24,7 @@ def part1_pg_hyperparams():
     hp["beta"] = 0.5
     hp["batch_size"] = 16
     hp["learn_rate"] = 7.5e-4
-
+    
     # hp['hidden_layers'] = [128, 128]
     # hp["batch_size"] = 8
     # ========================
@@ -71,6 +70,7 @@ Let's take the mean reward 190 as a baseline and recalculate.
 $ Var( [0.8 \cdot (500-190), 0.15 \cdot (50-190), 0.05 \cdot (20-190)] ) ~= 23051 $
 """
 
+
 part1_q2 = r"""
 We know that $ v_{\pi}(s) = \sum_{a \in \mathcal{A}} \pi(a|s) \cdot q_{\pi}(s,a) $
 $\\$
@@ -92,6 +92,7 @@ This is more or less $\mathbb{E}({g(\tau)|s_0 = s,\pi})$ which is the definition
 This is why choosing the estimated q-values as regression targets for our state-values leads us to a valid
 approximation of the value function.
 """
+
 
 part1_q3 = r"""
 1. Let's start by looking at the policy loss graphs. We can see that the non-baseline experiences started from
@@ -132,62 +133,47 @@ def part2_vae_hyperparams():
     # ====== YOUR CODE: ======
     # descent results:
     hypers = dict(
-        batch_size=16, h_dim=1024, z_dim=16, x_sigma2=0.001, learn_rate=0.0002, betas=(0.9, 0.99),
+        batch_size=16, h_dim=1024, z_dim=16, x_sigma2=0.001, learn_rate=0.0003, betas=(0.9, 0.99),
     )
+    # hypers = dict(
+    #     batch_size=64, h_dim=1024, z_dim=200, x_sigma2=0.02, learn_rate=0.0003, betas=(0.5, 0.99),
+    # )
     # ========================
     return hypers
 
 
 part2_q1 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+The $\sigma^2$ parameter affects the variance of the distribution over the latent space. It 
+determines the relative strength of each of the terms in the loss function. A low value 
+of $\sigma^2$ will result in the images generated from the model being more similar to each other, and 
+a high value will result in the images being more distinct from one another. $\\$ 
 """
 
 part2_q2 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+1. The reconstruction loss represents the difference between the regenerated image and the original one. $\\$
+The KL divergence loss can be interpreted as a regularization term. It is an upper bound to $-\mathop{\mathbb{E}}_x(log p(X))$, 
+which we try to bring to a minimum in order to maximize $p(X)$. $\\$
+2. The KL divergence minimizes the difference between the latent space and the space from which we sample. 
+Since we sample from normal distribution, the affect of the loss on the latent space is making it more similar (or closer) 
+to the normal distribution. $\\$
+3. The affect of the KL divergence helps us quite a lot. By making the latent space more similar to the normal distribution, 
+we allow our model to sample $z$'s that are similar to the encoded vector (although not identical). This vector will 
+make the decoder learn more similar vectors to the original input, and generate better vectors which are closer to the 
+desired result. $\\$
 """
 
 part2_q3 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+The reason for this is the lower bound of the KL divergence term. As we saw, the lower bound we get is: 
+$log p(X) \geq  \mathop{\mathbb{E}}_{z\sim q_{α}} (log p_{β}(X|z))-D_{KL}(q_{α}(Z|X)||p(Z))$ . Because $p(X)$ is the 
+probability of a given instance $X$ under the entire generative process, and we aim to maximize this probability for each 
+instance. This can also be thought of as minimizing the loss $-\mathop{\mathbb{E}}_x(log p(X))$ which is intractable. $\\$
 """
 
 part2_q4 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+The reason is to ensure numerical stability. The standard values are mostly small numbers between 0 to 1. Working with 
+those low values may lead us to errors because really low numbers are often viewed by the computer as zeros. By instead 
+using the log we are able to shift the domain we work on from $[0,1]$ to $[-∞,0]$ , allowing a much bigger space for 
+operations and numerical stability. $\\$
 """
 
 # ==============
@@ -200,6 +186,24 @@ PART3_CUSTOM_DATA_URL = None
 
 def part3_gan_hyperparams():
     hypers = dict(
+        batch_size=0,
+        z_dim=0,
+        data_label=0,
+        label_noise=0.0,
+        discriminator_optimizer=dict(
+            type="",  # Any name in nn.optim like SGD, Adam
+            lr=0.0,
+            # You an add extra args for the optimizer here
+        ),
+        generator_optimizer=dict(
+            type="",  # Any name in nn.optim like SGD, Adam
+            lr=0.0,
+            # You an add extra args for the optimizer here
+        ),
+    )
+    # TODO: Tweak the hyperparameters to train your GAN.
+    # ====== YOUR CODE: ======
+    hypers = dict(
         batch_size=16,
         z_dim=128,
         data_label=1,
@@ -207,7 +211,6 @@ def part3_gan_hyperparams():
         discriminator_optimizer=dict(
             type="Adam",  # Any name in nn.optim like SGD, Adam
             lr=0.0002,
-            # weight_decay=0.001,
             betas=(0.5, 0.999)
             # You an add extra args for the optimizer here
         ),
@@ -215,74 +218,42 @@ def part3_gan_hyperparams():
             type="Adam",  # Any name in nn.optim like SGD, Adam
             lr=0.0002,
             betas=(0.5, 0.999),
-            # weight_decay=0.002
-            # weight_decay=0.002
             # You an add extra args for the optimizer here
         ),
-    )
-    # TODO: Tweak the hyperparameters to train your GAN.
-    # ====== YOUR CODE: ======
-    # hypers = dict(
-    #     batch_size=9,
-    #     z_dim=75,
-    #     data_label=1,
-    #     label_noise=0.2,
-    #     discriminator_optimizer=dict(
-    #         type="Adam",  # Any name in nn.optim like SGD, Adam
-    #         lr=0.0001,
-    #         # You an add extra args for the optimizer here
-    #         betas=(0.6, 0.99)
-    #     ),
-    #     generator_optimizer=dict(
-    #         type="Adam",  # Any name in nn.optim like SGD, Adam
-    #         lr=0.001,
-    #         # You an add extra args for the optimizer here
-    #         betas=(0.6, 0.99)
-    #     ),
-    # )
-    # ========================
+    )    # ========================
     return hypers
 
 
+
 part3_q1 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+We maintain the gradients when we train the generator and we discard the gradients when we train the discriminator.
+We do it because when we train the discriminator we don't want to backpropagate through the generator because it will lead
+to the generator learning to fool the discriminator (the generator learns how to minimize the discriminator loss)
+rather than learning to create good images. 
 """
 
 part3_q2 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+ 1. No, because when we decide stop training only based on the generator loss it might be that the generator loss is low 
+ because it is fooling the discriminator but the discriminator loss is high which means that the generator not producing  
+ quality images. Basically, the generator loss is low not because he is creating good images but because the discriminator 
+ can't distinguish between real images to fakes ones.
+ 
+ 2. It means that the generator is able to fool the discriminator and because the discriminator loss is constant 
+ it also means that the generator is still learning and improving. 
 """
 
 part3_q3 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+As we look at the results we got from the two models we can see that the main difference between the models is that the 
+images that are being generated by the GAN are sharper but with a lot of artifacts and the background is less coherent, 
+while the images generated by the VAE model are more blurry, but the background looks more real but as we said blurry. 
+The main reason for this is the way the 2 models calculate their loss. $\\$ 
+In the GAN model, the loss of the generator is evaluated by the amount of images that fooled the discriminator. 
+As a result, the generator tries to create image with specific features (such as facial features like eyes, 
+mouth and nose) and ignores most of the background. This is why we get images with sharp faces but blurry background. $\\$ 
+On the other hand, the VAE model tries to generate images to be as close as they can be to the original images. As 
+explained in the previous part, the model minimizes the distance between the generated image and the original, which 
+creates blurry images because of the "Regression to the mean" problem. $\\$ 
 """
-
 
 # ==============
 
@@ -294,5 +265,10 @@ An equation: $e^{i\pi} -1 = 0$
 
 def part4_affine_backward(ctx, grad_output):
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    X, W, b = ctx.saved_tensors
+    dx = torch.matmul(0.5 * W.T, grad_output.T)
+    dw = torch.matmul(0.5 * grad_output.T, X)
+    db = grad_output
+
+    return dx, dw, db
     # ========================
